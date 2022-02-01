@@ -1,12 +1,23 @@
+import { useState, createContext, useEffect } from 'react';
+import { calculate } from './logic';
+import { local } from '@utils/storage';
+const defaultState = {
+  formular: null,
+  output: '0',
+  isShowFormular: true,
+  hasResult: false,
+};
+const localComputeData = local('ComputeData');
 export const actionTypes = {
   push: 'PUSH',
   clear: 'CLEAR',
   equal: 'EQUAL',
   output: 'OUTPUT',
 };
+export const CalcContext = createContext(null);
 
 const numberKey = 'bg-slate-400 text-slate-800';
-const operationKey = 'bg-slate-600 text-slate-100';
+const symbolKey = 'bg-slate-600 text-slate-100';
 const rowTwo = ' row-span-2';
 const colTwo = ' col-span-2';
 const clearKey = 'bg-red-800 text-slate-200 font-bold';
@@ -20,17 +31,17 @@ export const keys = [
   {
     keyType: actionTypes.push,
     text: '/',
-    className: operationKey,
+    className: symbolKey,
   },
   {
     keyType: actionTypes.push,
     text: '*',
-    className: operationKey,
+    className: symbolKey,
   },
   {
     keyType: actionTypes.push,
     text: '-',
-    className: operationKey,
+    className: symbolKey,
   },
   {
     keyType: actionTypes.push,
@@ -50,7 +61,7 @@ export const keys = [
   {
     keyType: actionTypes.push,
     text: '+',
-    className: operationKey + rowTwo,
+    className: symbolKey + rowTwo,
   },
   {
     keyType: actionTypes.push,
@@ -86,7 +97,7 @@ export const keys = [
   {
     keyType: actionTypes.equal,
     text: '=',
-    className: operationKey + rowTwo,
+    className: symbolKey + rowTwo,
   },
   {
     keyType: actionTypes.push,
@@ -99,3 +110,45 @@ export const keys = [
     className: clearKey,
   },
 ];
+
+function clacReducer(state) {
+  const result = calculate(state.output);
+  return {
+    ...state,
+    formular: state.output + '=',
+    output: result,
+    hasResult: true,
+  };
+}
+
+function toggleFormular(state) {
+  return { ...state, isShowFormular: !state.isShowFormular };
+}
+
+function outputReducer(state, key) {
+  if (state.output[0] === '0') return { ...state, output: key };
+  if (state.hasResult === true) return { ...state, hasResult: false, output: key, formular: null };
+  return { ...state, output: state.output + key };
+}
+
+export function useCalculator() {
+  const [calcState, setCalcState] = useState(defaultState);
+  const actions = {
+    clear: () => setCalcState(defaultState),
+    equal: () => setCalcState(clacReducer),
+    push: (key) => setCalcState((state) => outputReducer(state, key)),
+    toggleOutput: () => setCalcState(toggleFormular),
+  };
+
+  useEffect(() => {
+    const data = localComputeData.get();
+    setCalcState({ ...defaultState, ...data });
+  }, []);
+
+  useEffect(() => {
+    const { output, formular } = calcState;
+    localComputeData.save({ output, formular });
+  }, [calcState.output]);
+
+  return { calcState, actions };
+}

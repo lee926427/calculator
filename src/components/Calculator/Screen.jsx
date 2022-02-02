@@ -1,16 +1,11 @@
 import clsx from 'clsx';
-import { useContext } from 'react';
-import { CalcContext } from './hooks';
 
-function Screen() {
-  const {
-    calcState: { formular, isShowFormular, output },
-  } = useContext(CalcContext);
+function Screen({ output, formular, showFormular }) {
   return (
     <header className={clsx('bg-stone-300 rounded-md', 'p-2 text-right')}>
       <h2
         className={clsx('text-sm text-neutral-500 font-bold h-5', {
-          'opacity-0': !isShowFormular,
+          'opacity-0': !showFormular,
         })}
       >
         {formular}
